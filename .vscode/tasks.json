@@ -1,0 +1,42 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "start",
+            "detail": "Starts containers and opens localhost:8080 in the default browser.",
+            "group": "build",
+            "type": "shell",
+            "dependsOn": [
+                "compose",
+            ],
+            "dependsOrder": "sequence"
+        },
+        {
+            "label": "stop",
+            "detail": "Stops containers.",
+            "group": "build",
+            "type": "shell",
+            "command": "podman-compose",
+            "args": [
+                "-f",
+                "podman-compose.yml",
+                "down",
+            ]
+        },
+        {
+            "label": "compose",
+            "type": "shell",
+            "options": {
+                "cwd": "${workspaceFolder}",
+            },
+            "command": "podman-compose",
+            "args": [
+                "-f",
+                "podman-compose.yml",
+                "up",
+                "-d",
+                "--build"
+            ]
+        },
+    ]
+}

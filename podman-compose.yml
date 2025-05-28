@@ -1,0 +1,79 @@
+# PODMAN_USERNS=keep-id podman compose --file podman-compose.yml up --detach
+# https://blog.devsense.com/2019/debugging-php-on-docker-with-visual-studio-code
+x-podman:
+  in_pod: false
+
+name: php-mandatory-2
+services:
+  nginx:
+    container_name: nginx
+    build:
+      context: .
+      dockerfile: nginx
+    ports:
+      - 8080:80
+    depends_on:
+      - php
+    networks:
+      - internal
+    volumes:
+      - ./project/:/var/www/html
+  php:
+    container_name: php
+    build:
+      context: .
+      dockerfile: php
+    networks:
+      - internal
+    depends_on:
+      - mysql
+    environment:
+      XDEBUG_MODE: debug
+      XDEBUG_CONFIG: client_host=host.containers.internal client_port=9003
+    user: "1000:1000"
+    userns_mode: "keep-id:uid=1000,gid=1000"
+    volumes:
+      - ./project/:/var/www/html
+
+  mysql:
+    image: docker.io/library/mysql:8.4.5
+    container_name: "${MYSQL_HOST_NAME}"
+    hostname: "${MYSQL_HOST_NAME}"
+    restart: 'unless-stopped'
+    volumes:
+      - mysql:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    expose:
+      - 3306
+    ports:
+      - 3306:3306
+    networks:
+      - internal
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASS}"
+    healthcheck:
+      test: mysqladmin ping -h backend-mysql -u root --password=$$MYSQL_ROOT_PASSWORD
+      start_period: 5s
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  phpmyadmin:
+    image: docker.io/library/phpmyadmin:5.2.2
+    container_name: phpmyadmin
+    environment:
+      PMA_HOST: "${MYSQL_HOST_NAME}"
+      PMA_PORT: 3306
+      PMA_PASSWORD: "${MYSQL_ROOT_PASS}"
+      PMA_USER: root
+    ports:
+      - 8081:80
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  mysql:
