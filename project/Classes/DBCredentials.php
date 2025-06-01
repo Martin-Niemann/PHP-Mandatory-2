@@ -3,7 +3,7 @@
 Class DBCredentials
 {
     protected string $host = 'mysql';
-    protected string $dbname = 'company';
+    protected string $dbname = 'Chinook_AutoIncrement';
     protected string $user = 'root';
-    protected string $password = 'phpiscool';
+    protected string $password = 'chinook';
 }

@@ -1,8 +1,5 @@
 <?php
 
-require_once 'Database.php';
-require_once 'Department.php';
-
 Class Artist extends Database
 {
     /**
@@ -10,7 +7,7 @@ Class Artist extends Database
      * @return An associative array with artist information,
      *         or false if there was an error
      */
-    function getAll(): array|false
+    function list(): array|false
     {
         $sql =<<<SQL
             SELECT ArtistId, Name
@@ -18,15 +15,7 @@ Class Artist extends Database
             ORDER BY Name;
         SQL;
 
-        try {
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute();
-            
-            return $stmt->fetchAll();
-        } catch (PDOException $e) {
-            Logger::logText('Error getting all artists: ', $e);
-            return false;
-        }
+        return $this->fetch("Error getting all artists", $sql, null);
     }
 
     /**
@@ -35,7 +24,7 @@ Class Artist extends Database
      * @return An associative array with artist information,
      *         or false if there was an error
      */
-    function getByID(int $artistID): array|false
+    function getByID(int $artistID): array|string
     {
         $sql =<<<SQL
             SELECT ArtistId, Name
@@ -44,14 +33,14 @@ Class Artist extends Database
         SQL;
 
         try {
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->bindValue(':artistID', $artistID);
-            $stmt->execute();
-            
-            return $stmt->fetchAll();
-        } catch (PDOException $e) {
-            Logger::logText('Error retrieving artist information: ', $e);
-            return false;
+            return $this->fetch(
+                $sql, 
+                [new BindValues("artistID", $artistID)]
+            );
+        } catch (EmptyFetch) {
+            return ['error' => "An artist with that ID does not exist."];
+        } catch (\Throwable $th) {
+            return ['error' => $th];
         }
     }
 
@@ -71,16 +60,11 @@ Class Artist extends Database
             ORDER BY Name;
         SQL;
 
-        try {
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->bindValue(':name', "%$searchText%");
-            $stmt->execute();
-            
-            return $stmt->fetchAll();
-        } catch (PDOException $e) {
-            Logger::logText('Error searching for artists: ', $e);
-            return false;
-        }
+        return $this->fetch(
+            "Error searching for artists",
+            $sql,
+            [new BindValues("name", $searchText)],
+        );
     }
 
     /**
@@ -89,7 +73,7 @@ Class Artist extends Database
      * @return true if the insert was successful,
      *         or false if there was an error
      */
-    function insert(array $artist): bool
+    function insert(array $artist): string
     {
         $sql =<<<SQL
             INSERT INTO Artist
@@ -98,16 +82,11 @@ Class Artist extends Database
                 (:name);
         SQL;
 
-        try {
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->bindValue(':name', $artist['name']);
-            $stmt->execute();
-            
-            return $stmt->rowCount() === 1;
-        } catch (PDOException $e) {
-            Logger::logText('Error inserting a new artist: ', $e);
-            return false;
-        }
+        return $this->queryInsertId(
+            "Error inserting a new artist",
+            $sql,
+            [new BindValues("name", $artist['name'])]
+        );
     }
 
     /**
@@ -131,23 +110,24 @@ Class Artist extends Database
                 WHERE ArtistId = :artistID;
             SQL;
 
-        try {
-            $stmt = $this->pdo->prepare($sqlGetAlbums);
-            $stmt->bindValue(':artistID', $artistID);
-            $stmt->execute();
-            
-            if ($stmt->rowCount() > 0) {
+        $getAlbumsResult = $this->fetch(
+            "Error getting albums for artist", 
+            $sqlGetAlbums, 
+            [new BindValues("artistID", $artistID)]
+        );
+
+        if (is_array($getAlbumsResult)) {
+            if (count($getAlbumsResult) > 0) {
                 return ['error' => "You cannot delete an artist that still has albums."];
             } else {
-                $stmt = $this->pdo->prepare($sqlDeleteArtist);
-                $stmt->bindValue(':artistID', $artistID);
-                $stmt->execute();
-                
-                return $stmt->rowCount() === 1;   
+                return $this->query(
+                    "Error deleting an artist",
+                    $sqlDeleteArtist,
+                    [new BindValues("artistID", $artistID)]
+                ) === 1;
             }
-        } catch (PDOException $e) {
-            Logger::logText('Error deleting an artist: ', $e);
-            return false;
+        } else {
+            return $getAlbumsResult;
         }
     }
 }

@@ -28,15 +28,10 @@ Class Utils
         }
         $apiInfo['_links'] = array(
             array(
-                'rel' => ($entity == ENTITY_EMPLOYEES ? 'self' : ENTITY_EMPLOYEES),
-                'href' => $curDir . ENTITY_EMPLOYEES . '{?name=&range=&sort=}',
+                'rel' => ($entity == ENTITY_ARTISTS ? 'self' : ENTITY_ARTISTS),
+                'href' => $curDir . ENTITY_ARTISTS . '{?s=}',
                 'type' => 'GET'
             ),
-            array(
-                'rel' => ($entity == ENTITY_DEPARTMENTS ? 'self' : ENTITY_DEPARTMENTS),
-                'href' => $curDir . ENTITY_DEPARTMENTS . '{?sort=}',
-                'type' => 'GET'
-            )
         );        
         return json_encode($apiInfo);
     }
@@ -56,6 +51,6 @@ Class Utils
     {
         $protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off') 
             || $_SERVER['SERVER_PORT'] == 443) ? 'https://' : 'http://';
-        return $protocol . $_SERVER['HTTP_HOST'] . '/' . basename(__DIR__) . '/';     
+        return $protocol . $_SERVER['HTTP_HOST'] . '/' . basename(__DIR__) . '/api/v1/'; 
     }
 }
